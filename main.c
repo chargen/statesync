@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
                 close(fd[1]); //close output
                 //read from fd[0]
                 dup2(fd[0], 0);
-                execl("./statesync", "./statesync", "receive", NULL);
+                execl("/usr/bin/ssh", "/usr/bin/ssh", "localhost", "./Documents/Code/statesync/statesync", "receive", NULL);
             } else {
                 //parent
                 close(fd[0]); //close input
