@@ -13,6 +13,26 @@ void createDirectory(char* filename) {
     mkdir(directory, S_IRWXU);
 }
 
+void entryToString(struct File_entry* entry, char** line) {
+    snprintf(*line, 2000, "%s,%d,%ld,%d,%s\n", 
+            entry->file_name,
+            entry->size,
+            entry->mtime,
+            entry->st_mode,
+            entry->hash);
+}
+
+void stringToEntry(struct File_entry** entry, char* line) {
+    gchar** tokens = g_strsplit(line, ",", 5);
+    int i = 0;
+    (*entry)->file_name = tokens[i++];
+    (*entry)->size = atoi(tokens[i++]);
+    (*entry)->mtime = atol(tokens[i++]);
+    (*entry)->st_mode = atoi(tokens[i++]);
+    //            snprintf(entry->hash, 40, "%s", tokens[i++]);
+    (*entry)->hash[40] = '\0';
+}
+
 GList* readFile(char* filename) {
     char* path = g_build_filename(filename, ".statesync", "files.db", NULL);
     FILE* config_file = fopen(path, "r");
@@ -22,14 +42,7 @@ GList* readFile(char* filename) {
         while((line = fgets(line, 2000, config_file)) != NULL) {
             //split line;
             struct File_entry* entry = malloc(sizeof(struct File_entry));
-            gchar** tokens = g_strsplit(line, ",", 5);
-            int i = 0;
-            entry->file_name = tokens[i++];
-            entry->size = atoi(tokens[i++]);
-            entry->mtime = atol(tokens[i++]);
-            entry->st_mode = atoi(tokens[i++]);
- //           snprintf(entry->hash, 40, "%s", tokens[i++]);
-            entry->hash[40] = '\0';
+            stringToEntry(&entry, line);
             list = g_list_append(list, entry);
         }
     }
@@ -47,12 +60,7 @@ void writeFile(char* filename, GList* list) {
         do {
             struct File_entry* entry = (struct File_entry*) current->data;
             //split line;
-            snprintf(line, 2000, "%s,%d,%ld,%d,%s\n", 
-                entry->file_name,
-                entry->size,
-                entry->mtime,
-                entry->st_mode,
-                entry->hash);
+            entryToString(entry, &line);
             fputs(line, config_file);
         } while((current = g_list_next(current)) != NULL);
         fflush(config_file);

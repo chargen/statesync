@@ -1,3 +1,6 @@
+#ifndef _STATESYNC_H_
+#define _STATESYNC_H_
+
 #include <sys/types.h>
 
 struct File_entry {
@@ -7,3 +10,5 @@ struct File_entry {
     mode_t st_mode;
     char hash[41]; //SHA-1 hash of file (40 bytes)
 };
+
+#endif

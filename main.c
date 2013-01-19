@@ -95,7 +95,7 @@ struct File_entry* statToEntry(char* currentPath, struct stat* st) {
     }
 }
 
-void  getFilesRecursive(char* filename, GList** list) {
+void getFilesRecursive(char* filename, GList** list) {
     DIR* dir = opendir(filename);
     if(dir == NULL) return;
     struct dirent* directory;
@@ -111,16 +111,16 @@ void  getFilesRecursive(char* filename, GList** list) {
         //XOR is used to continue if either string is matched but not both
         if(strcmp(".", currentFile) ^ strcmp("..", currentFile)) continue;
         int isDir = isDirectory(currentPath);
-        //Instead of the path append a struct with the necessary information;
-        struct File_entry* file_entry = malloc(sizeof(struct File_entry));
-        file_entry->file_name = currentPath;
-        file_entry->size = getFileSize(currentPath);
-        struct stat filestat;
-        stat(currentPath, &filestat);
-        file_entry->mtime = filestat.st_mtime;
-        file_entry->st_mode = filestat.st_mode;
-        *list = g_list_append(*list, file_entry);
-        if(isDir)
+        if(isDir == 0) {
+            struct File_entry* file_entry = malloc(sizeof(struct File_entry));
+            file_entry->file_name = currentPath;
+            file_entry->size = getFileSize(currentPath);
+            struct stat filestat;
+            stat(currentPath, &filestat);
+            file_entry->mtime = filestat.st_mtime;
+            file_entry->st_mode = filestat.st_mode;
+            *list = g_list_append(*list, file_entry);
+        } else
             getFilesRecursive(currentPath, list);
     }
 }
@@ -137,10 +137,6 @@ void printStatus(GList* list) {
     }
     printf("#\n");
     printf("# Found %d files and folders\n", g_list_length(list));
-}
-
-struct File_entry* getEntryForAdd(char* filename) {
-
 }
 
 int main(int argc, char** argv) {
@@ -168,8 +164,6 @@ int main(int argc, char** argv) {
         } else if(strcmp(argv[1], "send") == 0) {
             int fd[2];
             pipe(fd);
-            GList* list = NULL;
-            getFilesRecursive(".", &list);
             pid_t pid = fork();
             if(pid == 0) {
                 //child
@@ -181,28 +175,89 @@ int main(int argc, char** argv) {
                 //parent
                 close(fd[0]); //close input
                 //write to fd[1]
+                GList* list = NULL;
+                getFilesRecursive(".", &list);
                 printf("# Sending data items: %d\n", g_list_length(list));
                 dup2(fd[1], 1);
+                fflush(stdout);
+                char* line = malloc(2000);
                 for(GList* current = list; current != NULL; current = g_list_next(current)) {
                     if(current->data == NULL) break;
-                    fwrite(current->data, 1, sizeof(struct File_entry), stdout);
+                    struct File_entry* entry = (struct File_entry*) current->data;
+                    entryToString(entry, &line);
+                    fwrite(line, 1, strlen(line), stdout);
+                }
+                fwrite("0000\n", 1, 5, stdout);
+                //start sending files
+                for(GList* current = list; current != NULL; current = g_list_next(current)) {
+                    struct File_entry* entry = (struct File_entry*) current->data;
+                    char* filename = entry->file_name;
+                    FILE* file = fopen(filename, "r");
+                    unsigned char buffer[1024];
+                    for(int i = 0; i<entry->size / 1024;i++) {
+                        fread(buffer, 1024, 1, file);
+                        fwrite(buffer, 1024, 1, stdout);
+                    }
+                    if(entry->size % 1024 > 0) {
+                        fread(buffer, entry->size % 1024, 1, file);
+                        fwrite(buffer, entry->size % 1024, 1, stdout);
+                    }
                 }
                 fflush(stdout);
+                //In order to close the pipe's output stream we need to close both file descriptors
                 close(fd[1]);
+                fclose(stdout);
                 int pid_status;
                 waitpid(pid, &pid_status, 0);
             }
         } else if(strcmp(argv[1], "receive") == 0) {
             GList* list = NULL;
-            struct File_entry* data = malloc(sizeof(struct File_entry));
-            while(fread(data, 1, sizeof(struct File_entry), stdin) != 0) {
+            unsigned char buffer[1024];
+            char* data = malloc(2000);
+            //TODO: cread directly from pipe and not from stdin
+            while((data = fgets(data, 2000, stdin)) != NULL) {
+                if(strcmp(data, "0000\n") == 0) break;
                 list = g_list_append(list, data);
-                data = malloc(sizeof(struct File_entry));
+                data = malloc(2000);
             }
-            printf("Finished loop, got: %d items!\n", g_list_length(list));
-            printStatus(list);
-            printf("Done\n");
+            for(GList* current = list; current != NULL; current = g_list_next(current)) {
+                char* data = (char*) current->data;
+                struct File_entry* entry = malloc(sizeof(struct File_entry));
+                stringToEntry(&entry, data);
+                char* receive_file_name = g_build_filename("received", entry->file_name, NULL);
+                FILE* file = fopen(receive_file_name, "w");
+                if(file == NULL) {
+                    char* pathname = g_path_get_dirname(receive_file_name);
+                    int result = g_mkdir_with_parents(pathname, 0755);
+                    if(result == -1) {
+                        perror("Could not create folder");
+                        printf("%s\n", pathname);
+                        exit(EXIT_FAILURE);
+                    } else {
+                        file = fopen(receive_file_name, "w");
+                        if(file == NULL) {
+                            perror("Error");   
+                            printf("%s\n", receive_file_name);
+                        }
+                    }
+                    free(pathname);
+                }
+                for(int i = 0; i<entry->size/1024; i++) {
+                    fread(buffer, 1024, 1, stdin);
+                    fwrite(buffer, 1024, 1, file);
+                }
+                if(entry->size % 1024 > 0) {
+                    fread(buffer, 1, entry->size % 1024, stdin);
+                    fwrite(buffer, 1, entry->size % 1024, file);
+                }
+                fflush(file);
+                fclose(file);
+                printf("# Received file: %s\n", receive_file_name);
+                free(data);
+                free(receive_file_name);
+            }
             fflush(stdout);
+            g_list_free(list);
         }
     }
 }
