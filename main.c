@@ -11,9 +11,13 @@
 #include <sys/wait.h>
 #include <dirent.h>
 
+#include <openssl/sha.h>
+
 #include <glib.h>
 #include "add.h"
 #include "types.h"
+#include "util.h"
+#include "file.h"
 
 char* getLastModTime(char* filename) {
     struct stat currentStat;
@@ -81,20 +85,6 @@ void printDirectoryStructure(char *filename) {
     printf("\n");
 }
 
-struct File_entry* statToEntry(char* currentPath, struct stat* st) {
-    struct File_entry* entry = malloc(sizeof(struct File_entry));
-    if(entry != NULL) {
-        entry->file_name = currentPath;
-        entry->size = st->st_size;
-        entry->mtime = st->st_mtime;
-        entry->st_mode = st->st_mode;
-        //Calculate the hash value of the file
-        //TODO:...
-    } else {
-        return NULL;
-    }
-}
-
 void getFilesRecursive(char* filename, GList** list) {
     DIR* dir = opendir(filename);
     if(dir == NULL) return;
@@ -141,13 +131,13 @@ void printStatus(GList* list) {
 
 int main(int argc, char** argv) {
     createDirectory(".");
-    if(argc == 2) {
+    if(argc >= 2) {
         if(strcmp(argv[1], "status") == 0) {
             GList* list = NULL;
             getFilesRecursive(".", &list);
             printStatus(list);
         } else if(strcmp(argv[1], "add") == 0) {
-            //TO THE ADDING
+            //DO THE ADDING
             if(argc < 3) {
                 printf("# No files to add were specified\n");
                 printf("#\n");
@@ -162,6 +152,10 @@ int main(int argc, char** argv) {
                 printf("Read: %d items\n", g_list_length(list));
             }
         } else if(strcmp(argv[1], "send") == 0) {
+            if(argc < 3) {
+                printf("# No host name given. Format: %s hostname\n", argv[0]);
+                exit(EXIT_FAILURE);
+            }
             int fd[2];
             pipe(fd);
             pid_t pid = fork();
@@ -170,7 +164,7 @@ int main(int argc, char** argv) {
                 close(fd[1]); //close output
                 //read from fd[0]
                 dup2(fd[0], 0);
-                execl("/usr/bin/ssh", "/usr/bin/ssh", "localhost", "./Documents/Code/statesync/statesync", "receive", NULL);
+                execl("/usr/bin/ssh", "/usr/bin/ssh", argv[2], "./Documents/Code/statesync/statesync", "receive", NULL);
             } else {
                 //parent
                 close(fd[0]); //close input
@@ -194,14 +188,23 @@ int main(int argc, char** argv) {
                     char* filename = entry->file_name;
                     FILE* file = fopen(filename, "r");
                     unsigned char buffer[1024];
+                    SHA_CTX ctx;
+                    SHA1_Init(&ctx);
                     for(int i = 0; i<entry->size / 1024;i++) {
                         fread(buffer, 1024, 1, file);
                         fwrite(buffer, 1024, 1, stdout);
+                        SHA1_Update(&ctx, buffer, 1024);
                     }
                     if(entry->size % 1024 > 0) {
                         fread(buffer, entry->size % 1024, 1, file);
                         fwrite(buffer, entry->size % 1024, 1, stdout);
+                        SHA1_Update(&ctx, buffer, entry->size % 1024);
                     }
+                    unsigned char* hash_data = malloc(SHA_DIGEST_LENGTH);
+                    SHA1_Final(entry->hash, &ctx);
+                    char* hash = sha1ToString(hash_data);
+                    free(hash_data);
+                    fwrite(hash, 41, 1, stdout);
                 }
                 fflush(stdout);
                 //In order to close the pipe's output stream we need to close both file descriptors
@@ -242,17 +245,31 @@ int main(int argc, char** argv) {
                     }
                     free(pathname);
                 }
+                SHA_CTX ctx;
+                SHA1_Init(&ctx);
                 for(int i = 0; i<entry->size/1024; i++) {
                     fread(buffer, 1024, 1, stdin);
                     fwrite(buffer, 1024, 1, file);
+                    SHA1_Update(&ctx, buffer, 1024);
                 }
                 if(entry->size % 1024 > 0) {
                     fread(buffer, 1, entry->size % 1024, stdin);
                     fwrite(buffer, 1, entry->size % 1024, file);
+                    SHA1_Update(&ctx, buffer, entry->size % 1024);
                 }
+                unsigned char* hash_data = malloc(SHA_DIGEST_LENGTH);
+                SHA1_Final(entry->hash, &ctx);
+                char* hash_new = sha1ToString(hash_data);
+                char* hash_source = malloc(2 * SHA_DIGEST_LENGTH+1);
+                fread(hash_source, 2 * SHA_DIGEST_LENGTH+1, 1, stdin);
                 fflush(file);
                 fclose(file);
+                if(strncmp(hash_source, hash_new, 2 * SHA_DIGEST_LENGTH + 1) != 0) {
+                    printf("Error receiving file. HASH Mismatch!\n");
+                }
                 printf("# Received file: %s\n", receive_file_name);
+                free(hash_data);
+                free(hash_source);
                 free(data);
                 free(receive_file_name);
             }
