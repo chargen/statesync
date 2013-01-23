@@ -10,84 +10,89 @@
 
 #include "types.h"
 #include "util.h"
+#include "FileEntry.h"
+#include "add.h"
 
 void createDirectory(char* basedir) {
-    char* directory = g_build_filename(basedir, ".statesync", NULL);
+    char* directory = g_build_filename(basedir, ".statesync", "objects", NULL);
     g_mkdir_with_parents(directory, S_IRWXU);
 }
 
-void entryToString(struct File_entry* entry, char** line) {
-    snprintf(*line, 2000, "%s,%d,%ld,%d,%s\n", 
-            entry->file_name,
-            entry->size,
-            entry->mtime,
-            entry->st_mode,
-            entry->hash);
-}
-
-void stringToEntry(struct File_entry** entry, char* line) {
-    gchar** tokens = g_strsplit(line, ",", 5);
-    int i = 0;
-    (*entry)->file_name = tokens[i++];
-    (*entry)->size = atoi(tokens[i++]);
-    (*entry)->mtime = atol(tokens[i++]);
-    (*entry)->st_mode = atoi(tokens[i++]);
-    //            snprintf(entry->hash, 40, "%s", tokens[i++]);
-    (*entry)->hash[40] = '\0';
-}
-
 /**
- * Check if stat indicates a file change, 
+ * Check if stat indicates a file change, so we know if we need to hash the file or not.
  */
 int isChanged(struct File_entry* entry, struct stat* st) {
-    //identify if the bits 
+    //identify if the bits
+    //TODO
 }
 
-/**
- * Returns 0 on failure, 1 on success
- */
 int addFile(char* filename) {
     //1. Hash filename
-    SHA_CTX ctx;
-    SHA1_Init(&ctx);
-    struct stat st;
-    stat(filename, &st);
-    int size = st.st_size;
-    FILE * file = fopen(filename, "r");
-    unsigned char buffer[1024] = {0};
-    if(size == -1) return 0;
-    if(size >= 1024) {
-        for(int i=0; i < (size / 1024); i++) {
-            fread(buffer, 1024, 1, file);
-            SHA1_Update(&ctx, buffer, 1024);
-        }
-    }
-    if((size % 1024) > 0) {
-        fread(buffer, size % 1024, 1, file);
-        SHA1_Update(&ctx, buffer, size % 1024);
-    }
-    unsigned char hash_data[SHA_DIGEST_LENGTH];
-    SHA1_Final(hash_data, &ctx);
-    char* hash = sha1ToString(hash_data);
+    char* basename_hash = filenameToHash(filename);
     //2. Check if .statesync/objects/<hash> exists
-    FILE* object = fopen(hash, "r");
-    struct File_entry* entry = malloc(sizeof(struct File_entry));
+    char* object_filename = g_build_filename(".statesync", "objects", basename_hash, NULL);    
+    FILE* object = fopen(object_filename, "r");
+    struct File_entry* entry = getEntryFromFilename(filename);
     if(object != NULL) {
-        //3b. Yes -> Load File_entry datas
-        char* line = malloc(2000);
-        line = fgets(line, 2000, object);
-        stringToEntry(&entry, line);
+        //3a. Yes -> Load File_entry datas
+        char* line1 = malloc(2000);
+        char* line2 = malloc(2000);
+        char* new_line;
+        line1 = fgets(line1, 2000, object);
+        line2 = fgets(line2, 2000, object);
+        struct File_entry* object_entry1 = malloc(sizeof(struct File_entry));
+        struct File_entry* object_entry2 = malloc(sizeof(struct File_entry));
+        stringToEntry(&object_entry1, line1);
+        if(line2 != NULL) {
+            stringToEntry(&object_entry2, line2);
+        }
+        //4. Compare current information with the loaded data
+        if(line2 != NULL) {
+            //A second line exists if the file has been modified before
+            if(compareFileEntries(entry, object_entry2) == 0) {
+                //same: Nothing to do
+                return 1;
+            } else {
+                //different: remove line one, move line 2 up and add new line
+                fclose(object);
+                object = fopen(object_filename, "w");
+                if(object == NULL) return 0; //error
+                fputs(line2, object);
+                new_line = entryToString(entry);
+                fputs(new_line, object);
+                free(new_line);
+            }
+        } else {
+            if(compareFileEntries(entry, object_entry1) == 0) {
+                //same: Nothing to do
+                return 1;
+            } else {
+                //different: Reopen object file in append mode and add a second line
+                fclose(object);
+                object = fopen(object_filename, "a");
+                if(object == NULL) return 0; //error
+                new_line = entryToString(entry);
+                fputs(new_line, object);
+            }
+        }
+        free(line1);
+        free(line2);
+        free(object_entry1);
+        free(object_entry2);
     } else {
         //3b. No -> create it
-        object = fopen(hash, "w");
-        
+        //The file was not there, so we are going to add it to the object tree
+        object = fopen(object_filename, "w");
+        char* line = entryToString(entry);
+        fwrite(line, strlen(line), 1, object);
     }
-    //4. If file changed: update data
+    fclose(object);
+    free(entry);
     return 1;
 }
 
-GList* readFile(char* filename) {
-    char* path = g_build_filename(filename, ".statesync", "files.db", NULL);
+GList* readFile(char* basedirectory) {
+    char* path = g_build_filename(basedirectory, ".statesync", "files.db", NULL);
     FILE* config_file = fopen(path, "r");
     GList* list = NULL;
     char* line = malloc(2000);
@@ -103,17 +108,17 @@ GList* readFile(char* filename) {
     return list;
 }
 
-void writeFile(char* filename, GList* list) {
-    char* path = g_build_filename(filename, ".statesync", "files.db", NULL);
+void writeFile(char* basedirectory, GList* list) {
+    char* path = g_build_filename(basedirectory, ".statesync", "files.db", NULL);
     FILE* config_file = fopen(path, "w");
     if(list == NULL) return;
-    char* line = malloc(2000);
+    char* line;
     GList* current = list;
     if(config_file) {
         do {
             struct File_entry* entry = (struct File_entry*) current->data;
             //split line;
-            entryToString(entry, &line);
+            line = entryToString(entry);
             fputs(line, config_file);
         } while((current = g_list_next(current)) != NULL);
         fflush(config_file);

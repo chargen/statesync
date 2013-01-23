@@ -17,7 +17,7 @@
 #include "add.h"
 #include "types.h"
 #include "util.h"
-#include "file.h"
+#include "FileEntry.h"
 
 char* getLastModTime(char* filename) {
     struct stat currentStat;
@@ -146,10 +146,13 @@ int main(int argc, char** argv) {
                 for(int i=2; i<argc; i++) {
                     list = g_list_append(list, argv[i]);
                 }
-                writeFile(".", list);
-                list = NULL;
-                list = readFile(".");
-                printf("Read: %d items\n", g_list_length(list));
+                for(GList* current = list; current != NULL; current = g_list_next(current)) {
+                    char* filename = (char*) current->data;
+                    int result = addFile(filename);
+                    if(result != 1) {
+                        printf("# Error adding file");
+                    }
+                }
             }
         } else if(strcmp(argv[1], "send") == 0) {
             if(argc < 3) {
@@ -174,12 +177,13 @@ int main(int argc, char** argv) {
                 printf("# Sending data items: %d\n", g_list_length(list));
                 dup2(fd[1], 1);
                 fflush(stdout);
-                char* line = malloc(2000);
+                char* line;
                 for(GList* current = list; current != NULL; current = g_list_next(current)) {
                     if(current->data == NULL) break;
                     struct File_entry* entry = (struct File_entry*) current->data;
-                    entryToString(entry, &line);
+                    line = entryToString(entry);
                     fwrite(line, 1, strlen(line), stdout);
+                    free(line);
                 }
                 fwrite("0000\n", 1, 5, stdout);
                 //start sending files
