@@ -20,10 +20,15 @@ void createDirectory(char* basedir) {
 
 /**
  * Check if stat indicates a file change, so we know if we need to hash the file or not.
+ * @returns 1 if file is the same, 0 if it changed
  */
 int isChanged(struct File_entry* entry, struct stat* st) {
-    //identify if the bits
-    //TODO
+    //identify if the file has changed and if we need to hash it
+    if(entry->size != st->st_size) return 0;
+    if(entry->mtime != st->st_mtime) return 0;
+    //TODO Add ctime
+    if(entry->st_mode != st->st_mode) return 0;
+    return 1;
 }
 
 int addFile(char* filename) {
