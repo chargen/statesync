@@ -1,5 +1,5 @@
-#ifndef _STATESYNC_H_
-#define _STATESYNC_H_
+#ifndef TYPES_H
+#define TYPES_H
 
 #include <sys/types.h>
 

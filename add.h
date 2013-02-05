@@ -1,3 +1,6 @@
+#ifndef ADD_H
+#define ADD_H
+
 #include "types.h"
 
 void createDirectory(char* filename);
@@ -19,3 +22,5 @@ GList* readFile(char* filename);
  * @list: List of struct File_entry.
  */
 void writeFile(char* filename, GList* list);
+
+#endif

@@ -1,11 +1,14 @@
+#ifndef FILE_ENTRY_H
+#define FILE_ENTRY_H
+
 #include <sys/stat.h>
 #include "types.h"
 
 /**
- * Returns a struct File_entry for the given filename, which needs
+ * Returns a struct File_entry that contains the information for the given
+ * filename as it is currently on the disk. The entry needs
  * to be freed if no longer needed. The filename is duplicated internally
- * and can be freed.
- * 
+ * and can be freed as well.
  */
 struct File_entry* getEntryFromFilename(char* filename);
 
@@ -32,3 +35,5 @@ int compareFileEntries(struct File_entry* entry1, struct File_entry* entry2);
  * Frees the entry and its nested pointers
  */
 void freeEntry(struct File_entry* entry);
+
+#endif

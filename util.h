@@ -1,3 +1,6 @@
+#ifndef UTIL_H
+#define UTIL_H
+
 #include <openssl/sha.h>
 
 /**
@@ -18,3 +21,5 @@ char* filenameToHash(char* filename);
  * freed when no longer needed;
  */
 char* fileToHash(char* filename);
+
+#endif
