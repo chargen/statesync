@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
             for(GList* current = list; current != NULL; current = g_list_next(current)) {
                 char* data = (char*) current->data;
                 struct File_entry* entry = malloc(sizeof(struct File_entry));
-                stringToEntry(&entry, data);
+                stringToEntry(entry, data);
                 char* receive_file_name = g_build_filename("received", entry->file_name, NULL);
                 FILE* file = fopen(receive_file_name, "w");
                 if(file == NULL) {

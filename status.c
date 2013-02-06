@@ -30,7 +30,40 @@ void getFilesRecursive(char* filename, GList** list) {
         int isDir = g_file_test(currentPath, G_FILE_TEST_IS_DIR);
         if(isDir == 0) {
             struct File_entry* file_entry = getEntryFromFilename(currentPath);
-            *list = g_list_append(*list, file_entry);
+            // object_entries is a NULL terminated array
+            struct File_entry** object_entries = getObjectEntry(currentPath);
+            // Here we should check if the entry is different from
+            // the entry saved in the object storage and only print files
+            // that are either not in the object storage or that have
+            // changed.
+            if(object_entries != NULL) {
+                struct File_entry* second_entry = *(object_entries+1);
+                // First we check if a second entry exists, and if not then we
+                // compare the first one.
+                if(second_entry != NULL) {
+                    if(compareFileEntries(file_entry, second_entry) != 0) {
+                        // Second line is different so the current file has
+                        // changed since it was last modified in the
+                        // object store.
+                        // TODO: we probably want to add files that have
+                        //      been modified to a different list
+                        *list = g_list_append(*list, file_entry);
+                    }
+                } else if (compareFileEntries(file_entry, *object_entries) != 0) {
+                    // First entry has changed, so the current file has
+                    // changed since it was added to the object store.
+                    // TODO: we probably want to add files that have
+                    //      been modified to a different list
+                    *list = g_list_append(*list, file_entry);
+                } else {
+                    // The file has not been modified since it was added
+                    // to the object store, we do nothing.
+                }
+            } else {
+                // There are no entries yet in the object store, this
+                // is an untracked file.
+                *list = g_list_append(*list, file_entry);
+            }
         } else
             getFilesRecursive(currentPath, list);
     }

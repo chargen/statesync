@@ -47,9 +47,9 @@ int addFile(char* filename) {
         line2 = fgets(line2, 2000, object);
         struct File_entry* object_entry1 = malloc(sizeof(struct File_entry));
         struct File_entry* object_entry2 = malloc(sizeof(struct File_entry));
-        stringToEntry(&object_entry1, line1);
+        stringToEntry(object_entry1, line1);
         if(line2 != NULL) {
-            stringToEntry(&object_entry2, line2);
+            stringToEntry(object_entry2, line2);
         }
         //4. Compare current information with the loaded data
         if(line2 != NULL) {
@@ -105,7 +105,7 @@ GList* readFile(char* basedirectory) {
         while((line = fgets(line, 2000, config_file)) != NULL) {
             //split line;
             struct File_entry* entry = malloc(sizeof(struct File_entry));
-            stringToEntry(&entry, line);
+            stringToEntry(entry, line);
             list = g_list_append(list, entry);
         }
     }

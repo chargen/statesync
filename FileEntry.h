@@ -13,6 +13,15 @@
 struct File_entry* getEntryFromFilename(char* filename);
 
 /**
+ * This function retrieves at the current entries for a filename from the
+ * object store. The function will return NULL terminated array of
+ * File_entry pointers. In the current implementation there will be two
+ * entries where the second entry is possibly empty depending if the file
+ * has been changed after it was added to the object store.
+ */
+struct File_entry** getObjectEntry(char* filename);
+
+/**
  * Returns a comma separated string with the values of a struct File_entry*
  * The string must be freed when no longer needed.
  */
@@ -24,7 +33,7 @@ char* entryToString(struct File_entry* entry);
  * A line will look like this:
  *     <filename>,<size>,<mtime>,<mode>,<40byte base 16 hash string>
  */
-void stringToEntry(struct File_entry** entry_pointer, char* line);
+void stringToEntry(struct File_entry* entry_pointer, char* line);
 
 /**
  * Compare two FileEntries and return 0 if they match, otherwise 1
