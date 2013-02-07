@@ -24,9 +24,10 @@ int main(int argc, char** argv) {
     createDirectory(".");
     if(argc >= 2) {
         if(strcmp(argv[1], "status") == 0) {
-            GList* list = NULL;
-            getFilesRecursive(".", &list);
-            printStatus(list);
+            GList* changed_list = NULL;
+            GList* untracked_list = NULL;
+            getFilesRecursive(".", &changed_list, &untracked_list);
+            printStatus(changed_list, untracked_list);
         } else if(strcmp(argv[1], "add") == 0) {
             //DO THE ADDING
             if(argc < 3) {
@@ -63,13 +64,15 @@ int main(int argc, char** argv) {
                 //parent
                 close(fd[0]); //close input
                 //write to fd[1]
-                GList* list = NULL;
-                getFilesRecursive(".", &list);
-                printf("# Sending data items: %d\n", g_list_length(list));
+                GList* changed_list = NULL;
+                GList* untracked_list = NULL;
+                getFilesRecursive(".", &changed_list, &untracked_list);
+                printf("# Sending data items: %d\n", g_list_length(changed_list) + g_list_length(untracked_list));
                 dup2(fd[1], 1);
                 fflush(stdout);
                 char* line;
-                for(GList* current = list; current != NULL; current = g_list_next(current)) {
+                //TODO: Add sending support for untracked files
+                for(GList* current = changed_list; current != NULL; current = g_list_next(current)) {
                     if(current->data == NULL) break;
                     struct File_entry* entry = (struct File_entry*) current->data;
                     line = entryToString(entry);
@@ -78,7 +81,7 @@ int main(int argc, char** argv) {
                 }
                 fwrite("0000\n", 1, 5, stdout);
                 //start sending files
-                for(GList* current = list; current != NULL; current = g_list_next(current)) {
+                for(GList* current = changed_list; current != NULL; current = g_list_next(current)) {
                     struct File_entry* entry = (struct File_entry*) current->data;
                     char* filename = entry->file_name;
                     FILE* file = fopen(filename, "r");

@@ -12,7 +12,7 @@
 #include "types.h"
 #include "FileEntry.h"
 
-void getFilesRecursive(char* filename, GList** list) {
+void getFilesRecursive(char* filename, GList** changed_list, GList** untracked_list) {
     DIR* dir = opendir(filename);
     if(dir == NULL) return;
     struct dirent* directory;
@@ -45,16 +45,12 @@ void getFilesRecursive(char* filename, GList** list) {
                         // Second line is different so the current file has
                         // changed since it was last modified in the
                         // object store.
-                        // TODO: we probably want to add files that have
-                        //      been modified to a different list
-                        *list = g_list_append(*list, file_entry);
+                        *changed_list = g_list_append(*changed_list, file_entry);
                     }
                 } else if (compareFileEntries(file_entry, *object_entries) != 0) {
                     // First entry has changed, so the current file has
                     // changed since it was added to the object store.
-                    // TODO: we probably want to add files that have
-                    //      been modified to a different list
-                    *list = g_list_append(*list, file_entry);
+                    *changed_list = g_list_append(*changed_list, file_entry);
                 } else {
                     // The file has not been modified since it was added
                     // to the object store, we do nothing.
@@ -62,23 +58,36 @@ void getFilesRecursive(char* filename, GList** list) {
             } else {
                 // There are no entries yet in the object store, this
                 // is an untracked file.
-                *list = g_list_append(*list, file_entry);
+                *untracked_list = g_list_append(*untracked_list, file_entry);
             }
         } else
-            getFilesRecursive(currentPath, list);
+            getFilesRecursive(currentPath, changed_list, untracked_list);
     }
 }
 
-void printStatus(GList* list) {
+void printStatus(GList* changed_list, GList* untracked_list) {
     char *red = "\033[01;31m";
     char *reset_color = "\033[00m";
     char* green = "\033[00;32m";
     printf("# Statesync status\n");
+    printf("# The following files have %schanged%s since they were added:\n", green, reset_color);
     printf("#\n");
-    for(GList* current = list; current != NULL; current = g_list_next(current)) {
+    for(GList* current = changed_list; current != NULL; current = g_list_next(current)) {
         struct File_entry* entry = (struct File_entry*) current->data;
         printf("#    %s%s%s\n", red, entry->file_name, reset_color);
     }
     printf("#\n");
-    printf("# Found %d files and folders\n", g_list_length(list));
+    printf("# The following files are currently %suntracked%s:\n", green, reset_color);
+    printf("#\n");
+    for(GList* current = untracked_list; current != NULL; current = g_list_next(current)) {
+        struct File_entry* entry = (struct File_entry*) current->data;
+        printf("#    %s%s%s\n", red, entry->file_name, reset_color);
+    }
+    printf("#\n");
+    printf("#  Total %d %sitems%s changed and %d %suntracked%s\n",
+        g_list_length(changed_list),
+        green, reset_color,
+        g_list_length(untracked_list),
+        green, reset_color
+    );
 }
