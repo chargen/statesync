@@ -13,7 +13,7 @@
 struct File_entry* getEntryFromFilename(char* filename);
 
 /**
- * This function retrieves at the current entries for a filename from the
+ * This function retrieves all the current entries for a filename from the
  * object store. The function will return NULL terminated array of
  * File_entry pointers. In the current implementation there will be two
  * entries where the second entry is possibly empty depending if the file
@@ -32,6 +32,10 @@ char* entryToString(struct File_entry* entry);
  * struct File_entry*
  * A line will look like this:
  *     <filename>,<size>,<mtime>,<mode>,<40byte base 16 hash string>
+ * @entry_pointer:
+ *      A pointer to an allocated entry structure.
+ * @line:
+ *      The line to be converted to the entry.
  */
 void stringToEntry(struct File_entry* entry_pointer, char* line);
 
