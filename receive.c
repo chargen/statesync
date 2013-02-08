@@ -13,7 +13,7 @@ void perform_receive() {
     unsigned char buffer[1024];
     char* data = malloc(2000);
     //TODO: read directly from pipe and not from stdin
-    while((data = fgets(data, 2000, stdin)) != NULL) {
+    while(fgets(data, 2000, stdin) != NULL) {
         if(strcmp(data, "0000\n") == 0) break;
         list = g_list_append(list, data);
         data = malloc(2000);
