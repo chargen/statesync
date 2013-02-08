@@ -114,6 +114,7 @@ int compareFileEntries(struct File_entry* entry1, struct File_entry* entry2) {
 
 void freeEntry(struct File_entry* entry) {
     free(entry->file_name);
+    free(entry->object_hash);
     free(entry->hash);
     free(entry);
 }

@@ -8,6 +8,7 @@ struct File_entry {
     int size;
     time_t mtime;
     mode_t st_mode;
+    char* object_hash;
     char hash[41]; //SHA-1 hash of file (40 bytes)
 };
 
