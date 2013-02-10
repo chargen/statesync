@@ -53,7 +53,7 @@ void perform_receive() {
             SHA1_Update(&ctx, buffer, entry->size % 1024);
         }
         unsigned char* hash_data = (unsigned char*) malloc(SHA_DIGEST_LENGTH);
-        SHA1_Final(entry->hash, &ctx);
+        SHA1_Final(hash_data, &ctx);
         char* hash_new = sha1ToString(hash_data);
         char* hash_source = (char*) malloc(2 * SHA_DIGEST_LENGTH+1);
         fread(hash_source, 2 * SHA_DIGEST_LENGTH+1, 1, stdin);

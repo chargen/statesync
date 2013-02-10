@@ -61,7 +61,7 @@ void perform_send(char *hostname) {
                 SHA1_Update(&ctx, buffer, entry->size % 1024);
             }
             unsigned char* hash_data = (unsigned char*) malloc(SHA_DIGEST_LENGTH);
-            SHA1_Final(entry->hash, &ctx);
+            SHA1_Final(hash_data, &ctx);
             char* hash = sha1ToString(hash_data);
             free(hash_data);
             fwrite(hash, 41, 1, stdout);
