@@ -60,7 +60,7 @@ void perform_send(char *hostname) {
                 fwrite(buffer, entry->size % 1024, 1, stdout);
                 SHA1_Update(&ctx, buffer, entry->size % 1024);
             }
-            unsigned char* hash_data = malloc(SHA_DIGEST_LENGTH);
+            unsigned char* hash_data = (unsigned char*) malloc(SHA_DIGEST_LENGTH);
             SHA1_Final(entry->hash, &ctx);
             char* hash = sha1ToString(hash_data);
             free(hash_data);

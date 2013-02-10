@@ -40,13 +40,13 @@ int addFile(char* filename) {
     struct File_entry* entry = getEntryFromFilename(filename);
     if(object != NULL) {
         //3a. Yes -> Load File_entry datas
-        char* line1 = malloc(2000);
-        char* line2 = malloc(2000);
+        char* line1 = (char*) malloc(2000);
+        char* line2 = (char*) malloc(2000);
         char* new_line;
         line1 = fgets(line1, 2000, object);
         line2 = fgets(line2, 2000, object);
-        struct File_entry* object_entry1 = malloc(sizeof(struct File_entry));
-        struct File_entry* object_entry2 = malloc(sizeof(struct File_entry));
+        struct File_entry* object_entry1 = (struct File_entry*) malloc(sizeof(struct File_entry));
+        struct File_entry* object_entry2 = (struct File_entry*) malloc(sizeof(struct File_entry));
         stringToEntry(object_entry1, line1);
         if(line2 != NULL) {
             stringToEntry(object_entry2, line2);
@@ -100,11 +100,11 @@ GList* readFile(char* basedirectory) {
     char* path = g_build_filename(basedirectory, ".statesync", "files.db", NULL);
     FILE* config_file = fopen(path, "r");
     GList* list = NULL;
-    char* line = malloc(2000);
+    char* line = (char*) malloc(2000);
     if(config_file) {
         while((line = fgets(line, 2000, config_file)) != NULL) {
             //split line;
-            struct File_entry* entry = malloc(sizeof(struct File_entry));
+            struct File_entry* entry = (struct File_entry*) malloc(sizeof(struct File_entry));
             stringToEntry(entry, line);
             list = g_list_append(list, entry);
         }

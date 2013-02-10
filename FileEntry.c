@@ -12,7 +12,7 @@
 #include "glib.h"
 
 struct File_entry* getEntryFromFilename(char* filename) {
-    struct File_entry* entry = malloc(sizeof(struct File_entry));
+    struct File_entry* entry = (struct File_entry*) malloc(sizeof(struct File_entry));
     struct stat st;
     stat(filename, &st);
     if(entry != NULL) {
@@ -52,14 +52,14 @@ struct File_entry** getObjectEntry(char* filename) {
         //   File_entries for the two lines for the object file in it.
         int num_entries = 3;
         //This is dangerous and wrong, use double pointer instead
-        struct File_entry** object_entries = malloc(num_entries*sizeof(void *));
-        struct File_entry* entry1 = malloc(sizeof(struct File_entry));
+        struct File_entry** object_entries = (struct File_entry**) malloc(num_entries*sizeof(void *));
+        struct File_entry* entry1 = (struct File_entry*) malloc(sizeof(struct File_entry));
         struct File_entry** entry_head = object_entries;
         *object_entries = entry1;
         stringToEntry(*entry_head, line1);
         entry_head++;
         if(exists2 != NULL) {
-            *entry_head = malloc(sizeof(struct File_entry));
+            *entry_head = (struct File_entry*) malloc(sizeof(struct File_entry));
             stringToEntry(*entry_head, line2);
             entry_head++;
         } else {
@@ -73,7 +73,7 @@ struct File_entry** getObjectEntry(char* filename) {
 }
 
 char* entryToString(struct File_entry* entry) {
-    char* line = malloc(2000);
+    char* line = (char*) malloc(2000);
     snprintf(line, 2000, "%s,%d,%ld,%d,%s\n",
             entry->file_name,
             entry->size,

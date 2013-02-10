@@ -11,16 +11,16 @@
 void perform_receive() {
     GList* list = NULL;
     unsigned char buffer[1024];
-    char* data = malloc(2000);
+    char* data = (char*) malloc(2000);
     //TODO: read directly from pipe and not from stdin
     while((data = fgets(data, 2000, stdin)) != NULL) {
         if(strcmp(data, "0000\n") == 0) break;
         list = g_list_append(list, data);
-        data = malloc(2000);
+        data = (char*) malloc(2000);
     }
     for(GList* current = list; current != NULL; current = g_list_next(current)) {
         char* data = (char*) current->data;
-        struct File_entry* entry = malloc(sizeof(struct File_entry));
+        struct File_entry* entry = (struct File_entry*) malloc(sizeof(struct File_entry));
         stringToEntry(entry, data);
         char* receive_file_name = g_build_filename("received", entry->file_name, NULL);
         FILE* file = fopen(receive_file_name, "w");
@@ -52,10 +52,10 @@ void perform_receive() {
             fwrite(buffer, 1, entry->size % 1024, file);
             SHA1_Update(&ctx, buffer, entry->size % 1024);
         }
-        unsigned char* hash_data = malloc(SHA_DIGEST_LENGTH);
+        unsigned char* hash_data = (unsigned char*) malloc(SHA_DIGEST_LENGTH);
         SHA1_Final(entry->hash, &ctx);
         char* hash_new = sha1ToString(hash_data);
-        char* hash_source = malloc(2 * SHA_DIGEST_LENGTH+1);
+        char* hash_source = (char*) malloc(2 * SHA_DIGEST_LENGTH+1);
         fread(hash_source, 2 * SHA_DIGEST_LENGTH+1, 1, stdin);
         fflush(file);
         fclose(file);

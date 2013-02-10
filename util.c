@@ -8,7 +8,7 @@
 
 char* sha1ToString(unsigned char* hash_data) {
     //each byte becomes two characters + 1 for terminating '\0'
-    char* hash = malloc(2 * SHA_DIGEST_LENGTH+1);
+    char* hash = (char*) malloc(2 * SHA_DIGEST_LENGTH+1);
     char* hash_head = hash;
     for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
         snprintf(hash_head, 3, "%02hhx", hash_data[i]);
