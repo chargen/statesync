@@ -1,0 +1,11 @@
+Statesync is a statefull synchronisation tool.
+
+It remembers which files it currently tracks and tells you if you changed or removed them.
+When you have made changes to a local folder you can sync the changes with a remote repository.
+
+Because statesync knows if you modified or deleted a file it can warn you if the file was changed
+both in the remote location and locally and it will ask which file you want to keep.
+
+If you remove a file locally and synchronize, then statesync will also remove that file from the
+remote location. This is different from most current synchronisation tools, which do not know if a file
+has been removed since these tools do not keep track of the state of files.
