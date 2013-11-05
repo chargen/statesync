@@ -9,3 +9,14 @@ both in the remote location and locally and it will ask which file you want to k
 If you remove a file locally and synchronize, then statesync will also remove that file from the
 remote location. This is different from most current synchronisation tools, which do not know if a file
 has been removed since these tools do not keep track of the state of files.
+
+Howto build clang
+=================
+
+ * Run autogen.sh
+     ./autogen.sh
+ * To build with clang additionally pass --enable-clang
+     ./autogen.sh --enable-clang
+ * Then run make
+     make
+
