@@ -24,6 +24,13 @@ echo
 	exit;
 }
 
+(which pkg-config) < /dev/null > /dev/null 2>&1 || {
+    echo;
+    echo "You must have pkg-config installed to compile statesync"
+    echo;
+    exit;
+}
+
 echo "Generating configuration files for statesync, please wait..."
 echo;
 

@@ -31,7 +31,7 @@ AC_CONFIG_SRCDIR([src/main.c])
 
 # Check for libaries using pkg-config
 PKG_PROG_PKG_CONFIG
-PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.34])
+PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.32])
 
 
 

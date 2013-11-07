@@ -7,7 +7,8 @@ statesync*
 .statesync*
 *~
 *.in
-*Makefile*
+*Makefile
+*Makefile.in
 configure
 depcomp
 install-sh
