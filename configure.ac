@@ -31,9 +31,8 @@ AC_CONFIG_SRCDIR([src/main.c])
 
 # Check for libaries using pkg-config
 PKG_PROG_PKG_CONFIG
-PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.32])
-
-
+PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.32], [], [echo "glib development files were not found, install libglib-*-dev or its equivalent on your system"])
+PKG_CHECK_MODULES([OPENSSL], [openssl >= 1.0], [], [echo "OpenSSL development files were not found, install libssl-dev or its equivalent on your system"])
 
 AC_CONFIG_FILES([
    Makefile
